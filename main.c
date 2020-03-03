@@ -1,11 +1,4 @@
-/*
- * evcu-remote.c
- *
- * Created: 31.05.2019 21:04:56
- * Author : Kenan
- */ 
-
-#include "main.h"
+#include "main.h"				//Einbindung der Bibliotheken und Unterprogramme
 #include "uart.h"
 
 #include <stdio.h>
@@ -19,154 +12,130 @@
 #include "ringbufferAveraging.h"
 
 
-#define CTC_MATCH_OVERFLOW ((F_CPU / 1000)/8)
+#define CTC_MATCH_OVERFLOW ((F_CPU / 1000)/8)	//Timer wird auf 1ms Takt eingestellt
 
-#define SSD1306_ADDR  0x3C
+#define SSD1306_ADDR  0x3C			//I2C Adresse des Displays
 
-int dir = 1;
-int motorSpeed = 0;
-volatile unsigned long timer1_millis;
-long milliseconds_since;
-int x;
-u8g_t u8g;
-ringbufferAveraging_t HallSensorApproximation;
-ringbufferAveraging_t Stick;
-unsigned int c;
-char buffer[7];
-int  num=134;
+int dir = 1;					//Fahrtrichtung wird auf vorwärts deklariert
+int motorSpeed = 0;				//Gewschindigkeit der Motoren wird auf 0 deklariert
+volatile unsigned long timer1_millis;		//Der Timer kann nur positive Werte annehmen und außerdem zu jeder Zeit
+						//auch ohne expliziten Zugriff im Quelltext geändert werden
+
+u8g_t u8g;					//Display wird initialisiert
+ringbufferAveraging_t HallSensorApproximation;	//Der Ringbuffer für den Magnetfeldsensor wird initialisiert
+ringbufferAveraging_t Stick;			//Der Ringbuffer für die Potis des Joysticks wird initialisiert
 
 void ADC_Init()
 {
-	 ADMUX = (1<<REFS0);
-	 ADCSRA = (1<<ADPS1) | (1<<ADPS0);   
-	 ADCSRA |= (1<<ADEN);
-	 ADCSRA |= (1<<ADSC);                  // eine ADC-Wandlung
-	 while (ADCSRA & (1<<ADSC) ) {         // auf Abschluss der Konvertierung warten
+	 ADMUX = (1<<REFS0);			//Auswahl der internen Referenzspannung		
+	 ADCSRA = (1<<ADPS1) | (1<<ADPS0);   	//Der Takt des AD-Wandlers wird gewählt (ein achtel des Prozessortaktes)
+	 ADCSRA |= (1<<ADEN);			//Der AD-Wandler wird aktiviert
+	 ADCSRA |= (1<<ADSC);                  	//Eine ADC-Wandlung wird durchgeführt (zum Einschwingen)
+	 while (ADCSRA & (1<<ADSC) ) {         	//Es wird auf Abschluss der Konvertierung warten
 	 }
-	 (void) ADCW;
+	 (void) ADCW;				//Der ausgelesene Wert wird in ADCW geschrieben
+						//Muss einmal aufgerufen werden, da sonst die nächsten Ergebnisse des ADC
+						//nicht gespeichert werden können
 }
 
 /* ADC Einzelmessung */
 uint16_t ADC_Read( uint8_t channel )
 {
-	// Kanal waehlen, ohne andere Bits zu beeinflu�en
-	ADMUX = (ADMUX & ~(0x1F)) | (channel & 0x1F);
-	ADCSRA |= (1<<ADSC);            // eine Wandlung "single conversion"
-	while (ADCSRA & (1<<ADSC) ) {   // auf Abschluss der Konvertierung warten
+							// Kanal waehlen, ohne andere Bits zu beeinflußen
+	ADMUX = (ADMUX & ~(0x1F)) | (channel & 0x1F); 	//Die Mux Channel werden auf 0 gesetzt anschließend auf den ensprechenden
+							//Channel gesetzt (Multiplexer)
+	ADCSRA |= (1<<ADSC);            		//Eine Wandlung der ausgewählten Channel
+	while (ADCSRA & (1<<ADSC) ) {   //Es wird gewartet bis lesen Bit wieder auf 0 (erfolgreiches Lesen) ist (siehe Datenblatt)
 	}
-	return ADCW;                    // ADC auslesen und zur�ckgeben
+	return ADCW;                    // Die umgewandelten Werte werden in das Register ADCW geschrieben
 }
 
-unsigned long millis ()
+unsigned long millis ()			
 {
-	unsigned long millis_return;
+	unsigned long millis_return;	//Lokale Variable 
 
-	// Ensure this cannot be disrupted
-	ATOMIC_BLOCK(ATOMIC_FORCEON) {
-		millis_return = timer1_millis;
+	ATOMIC_BLOCK(ATOMIC_FORCEON) {		//Es wird sichergestellt, dass beim beim auslesen des wertes,
+		millis_return = timer1_millis;	//kein Interrrupt stattfinden kann, damit alle Bits überschrieben werden können
 	}
 	
-	return millis_return;
+	return millis_return;		//Der Wert wird wieder zurückgegeben
 }
 
-ISR (TIMER1_COMPA_vect)
+ISR (TIMER1_COMPA_vect)			//Sobald ein Interrupt bei Timer1 auftritt wird timer1_millis um 1 erhöht
 {
 	timer1_millis++;
 }
 
-ISR(ADC_vect){
-
-}
-
-void flash_led ()
-{
-	unsigned long milliseconds_current = millis();
-
-	if (milliseconds_current - milliseconds_since > 10) {
-		// LED connected to PC0/Analog 0
-		PORTC ^= (1 << PINC0);
-		milliseconds_since = milliseconds_current;
-	}
-}
-
 void sendData(){
-	//check if uart interrupt is enable
-	if(UCSR0B&(1<<UDRIE0))
+	if(UCSR0B&(1<<UDRIE0))		//Es wird überprüft ob noch gesendet wird
 	{
-		return ;
+		return ;		//Ist dies der fall wird die Funktion verlassen
 	}
-	static unsigned long lasttime=0;
-	//TODO 0 mit millis() tauschen
-	if(lasttime+49>millis()){
-		return ;
+	static unsigned long lasttime=0;	
+	if(lasttime+49>millis()){	//Es werden alle 50ms Daten an das Bluetoothmodul gesendet
+	return ;
 	}
-	addValue(&Stick,percentage(ADC_Read(ADC1D)));
+	addValue(&Stick,percentage(ADC_Read(ADC1D))); 	//Der Ringbuffer wird gefüllt mit einem neuen Wert
 	
-	motorSpeed = getRingbufferAverage(&Stick);
-	char text[20] = "0q\t";
-	char n[4];
+	motorSpeed = getRingbufferAverage(&Stick);	//Der Durchschnitt des Ringbuffers wird in motorspeed geschrieben
+	char text[20] = "0q\t";		//Arry wird deklariert und mit dem Text aufgefüllt 
+					//Diese Nachricht hat eine bestimmte Reihenfolge und beinhaltet Informationen
+					//über Lenkrichtung, Geschwindigkeit und Fahrtrichtung
+	char n[4];			//Platzhalter für Motorgeschwindigkeit
 	
-	integerToChar(n,motorSpeed);
-	strcat(text,n);
-	strcat(text,"\t1\n");
+	integerToChar(n,motorSpeed);	//Aus den Zahlenwerten werden Buchstaben gemacht (auch 0,1,2 ist ein Buchstabe)
+					//Nachricht bleibt vom Format her immer gleich
+	strcat(text,n);			//Die Motorwerte werden zur Nachricht addiert
+	strcat(text,"\t1\n");		//Lenkung wird nicht betätigt (Testzwecke)
 		
-	uart_puts(text);
-	lasttime = millis();
+	uart_puts(text);		//Text wird in den Buffer von Uart gesetzt
+	lasttime = millis();		//Die Aktuelle Zeit wird gespeichert 
 }
 void setup()
 {
-	x=0;
-    /*
-     *  Initialize UART library, pass baudrate and AVR cpu clock
-     *  with the macro 
-     *  UART_BAUD_SELECT() (normal speed mode )
-     *  or 
-     *  UART_BAUD_SELECT_DOUBLE_SPEED() ( double speed mode)
-     */
-    uart_init(UART_BAUD_SELECT_DOUBLE_SPEED(UART_BAUD_RATE,F_CPU)); 
+   uart_init(UART_BAUD_SELECT_DOUBLE_SPEED(UART_BAUD_RATE,F_CPU)); //Uart wird initialisiert mit den entsprechenden Werten
 
 	// Timer    	
 	// CTC mode, Clock/8
-	 TCCR1B |= (1 << WGM12) | (1 << CS11);
+	 TCCR1B |= (1 << WGM12) | (1 << CS11);	//Timer wird auf CTC Mode gesetzt, Clockspeed auf ein Achtel der Taktrate
 	  // Load the high byte, then the low byte
 	  // into the output compare
-	  OCR1AH = (CTC_MATCH_OVERFLOW >> 8)& 0xFF;
-	  OCR1AL = CTC_MATCH_OVERFLOW& 0xFF;
+	  OCR1AH = (CTC_MATCH_OVERFLOW >> 8)& 0xFF; //Der Match Overflow wird ins obere und untere Register geschoben
+	  OCR1AL = CTC_MATCH_OVERFLOW& 0xFF;		
 	  
 	  // Enable the compare match interrupt
-	  TIMSK1 |= (1 << OCIE1A);
-	  sei();
+	  TIMSK1 |= (1 << OCIE1A);	//Interrupt wird eingeschaltet
+	  sei();			//Globaler Interrupt wird aktiviert
 	  //Timer ende
 	  
-	  DDRD |= (0<< PIND5);
+	  DDRD |= (0<< PIND5);		//Pin D5 als Input	
 	  //LED-Test-pin
-	  DDRC |= (1 << PINC0);
+	  DDRC |= (1 << PINC0);		//Pin C0 als Output
 	  
-	  CLKPR = 0x80;
-	  CLKPR = 0x00;
+	  //CLKPR = 0x80; prozessorgeschwindigkeit			
+	  //CLKPR = 0x00;
 
-	  u8g_InitI2C(&u8g, &u8g_dev_ssd1306_128x32_i2c, U8G_I2C_OPT_NONE);
-	  u8g_SetFont(&u8g,u8g_font_6x10);
-	  //u8g_SetFont(&u8g, u8g_font_04b_03);
-	  
-	  InitRingbufferAveraging(&HallSensorApproximation);
+	  u8g_InitI2C(&u8g, &u8g_dev_ssd1306_128x32_i2c, U8G_I2C_OPT_NONE); 	//display wird initialisiert
+	  u8g_SetFont(&u8g,u8g_font_6x10);					//Schriftart wird ausgewählt
+		  
+	  InitRingbufferAveraging(&HallSensorApproximation);			//Ringbuffer werden initialisiert
 	  InitRingbufferAveraging(&Stick);
 }
 
 void draw(void)
 {
-	static unsigned long lasttime=0;
+	static unsigned long lasttime=0;	//es wird zu beginn auf 0 gesetzt	
 	static unsigned int count = 0;
 	//TODO 0 mit millis() tauschen
-	if(lasttime+50>millis()){
+	if(lasttime+50>millis()){		//Es wird wieder alle 50 ms auf das Display geschrieben	
 		return ;
 	}
-	char a[20];
+	char a[20];				//Nachricht für den Bildschirm wird vorbereitet
 	char m[4];
 	int magnet = getRingbufferAverage(&HallSensorApproximation);
 	integerToChar(m,magnet);
-	sprintf(a,"%d",motorSpeed);
-	if(count==0)
+	sprintf(a,"%d",motorSpeed);		//Motorspeed wird in a als text geschrieben
+	if(count==0)				//Es wird immer nur eine Bildschirmhälfte neu beschrieben
 	{
 		u8g_FirstPage(&u8g);
 		renderDisplay(&u8g,a,m);
@@ -190,7 +159,7 @@ void draw(void)
 	
 }
 
-void sample()
+void sample()					//Es wird alle 20ms ein Wert vom Hallsensor gespeichert
 {	
 	static unsigned long lasttime=0;
 	//TODO 0 mit millis() tauschen
@@ -204,14 +173,14 @@ void sample()
 
 int main(void)
 {
-	wdt_enable(WDTO_8S);
-	wdt_reset();
-	wdt_disable();
-	ADC_Init();
-	enum statemachine state = empty;   
-    while (1) 
+	wdt_enable(WDTO_8S);			//Watchdog wird eingeschaltet
+	wdt_reset();				//auf 0 gesetzt
+	wdt_disable();				//Ausgeschaltet
+	ADC_Init();				//Funktion wird aufgerufen
+	enum statemachine state = empty;   	//Anfangszustand der Statemachine
+    while (1) 					//Die verschiedenen States werden abgearbeitet
     {
-		switch (state)
+		switch (state)			
 		{
 		case empty:
 			state = boot;
@@ -239,31 +208,24 @@ int main(void)
 			
 			break;
 		}
-		sample();
+		sample();	//ADC sampling funktion	
 		//flash_led();
 		
     }
 }
 
-void readInput()
-{
-	static unsigned long lasttime=0;
-	//TODO 0 mit millis() tauschen
-	if(lasttime+50>millis()){
-		return ;
-	}
-}
 
 
-void integerToChar(char* chararray, int number)
-{
+
+void integerToChar(char* chararray, int number)		//Zahlenwerte werden in ASCII umgewandelt und an die entsprechende
+{							//stelle im Text gesetzt
 	chararray[0] = (number/100)%10+48;
 	chararray[1] = (number/10)%10+48;
 	chararray[2] = (number/1)%10+48;
 	chararray[3] = '\0';
 }
 
-int percentage(long x)
+int percentage(long x)					//Funktion um % wert zu ermitteln
 {
 	return (100*x)/1023;
 } 
