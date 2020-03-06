@@ -126,7 +126,7 @@ void draw(void)
 {
 	static unsigned long lasttime=0;	//es wird zu beginn auf 0 gesetzt	
 	static unsigned int count = 0;
-	//TODO 0 mit millis() tauschen
+	
 	if(lasttime+50>millis()){		//Es wird wieder alle 50 ms auf das Display geschrieben	
 		return ;
 	}
@@ -162,7 +162,7 @@ void draw(void)
 void sample()					//Es wird alle 20ms ein Wert vom Hallsensor gespeichert
 {	
 	static unsigned long lasttime=0;
-	//TODO 0 mit millis() tauschen
+	
 	if(lasttime+20>millis()){
 		return ;
 	}
