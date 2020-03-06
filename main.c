@@ -124,8 +124,8 @@ void setup()
 
 void draw(void)
 {
-	static unsigned long lasttime=0;	//es wird zu beginn auf 0 gesetzt	
-	static unsigned int count = 0;
+	static unsigned long lasttime=0;	//es wird zu beginn einmal der timer auf 0 gesetzt	
+	static unsigned int count = 0;		//es wird zu beginn einmal der counter auf 0 gesetzt
 	
 	if(lasttime+50>millis()){		//Es wird wieder alle 50 ms auf das Display geschrieben	
 		return ;
@@ -194,7 +194,8 @@ int main(void)
 			break;
 		case send:
 			state = display;
-			wdt_enable(WDTO_1S);
+			wdt_enable(WDTO_1S);	//Watchdog Timer wird auf 1 Sekunde gesetzt, wird länger als 1 Sekunde
+						//nicht mit der Watchdog Funktion interagiert, wird der Mikrocontroller resetet
 			sendData();
 			wdt_disable();
 			wdt_reset();
