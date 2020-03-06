@@ -9,6 +9,6 @@
 
 void renderDisplay(u8g_t *u8g, char a[20])
 {
-	u8g_DrawStr90(u8g, 110, 0, "Bier");
+	u8g_DrawStr90(u8g, 110, 0, "Test");
 	u8g_DrawStr90(u8g, 90, 0, a);
 }
