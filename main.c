@@ -187,10 +187,10 @@ int main(void)
 			break;
 		case boot:
 			setup();
-			state = display;
+			state = send;
 			break;
 		case receive:
-			
+			state = send
 			break;
 		case send:
 			state = display;
@@ -201,7 +201,7 @@ int main(void)
 			wdt_reset();
 			break;
 		case display:
-			state = send;
+			state = receive;
 			wdt_enable(WDTO_1S);
 			draw();
 			wdt_disable();
@@ -210,7 +210,7 @@ int main(void)
 			break;
 		}
 		sample();	//ADC sampling funktion	
-		//flash_led();
+		
 		
     }
 }
