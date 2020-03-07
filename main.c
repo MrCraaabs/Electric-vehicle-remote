@@ -16,7 +16,6 @@
 
 #define SSD1306_ADDR  0x3C			//I2C Adresse des Displays
 
-int dir = 1;					//Fahrtrichtung wird auf vorwärts deklariert
 int motorSpeed = 0;				//Gewschindigkeit der Motoren wird auf 0 deklariert
 volatile unsigned long timer1_millis;		//Der Timer kann nur positive Werte annehmen und außerdem zu jeder Zeit
 						//auch ohne expliziten Zugriff im Quelltext geändert werden
@@ -67,18 +66,15 @@ ISR (TIMER1_COMPA_vect)			//Sobald ein Interrupt bei Timer1 auftritt wird timer1
 }
 
 void sendData(){
-	if(UCSR0B&(1<<UDRIE0))		//Es wird überprüft ob noch gesendet wird
-	{
-		return ;		//Ist dies der fall wird die Funktion verlassen
-	}
+	
 	static unsigned long lasttime=0;	
-	if(lasttime+49>millis()){	//Es werden alle 50ms Daten an das Bluetoothmodul gesendet
+	if(lasttime+49>millis()){	//Es werden nur alle 50ms Daten an das Bluetoothmodul gesendet
 	return ;
 	}
 	addValue(&Stick,percentage(ADC_Read(ADC1D))); 	//Der Ringbuffer wird gefüllt mit einem neuen Wert
 	
 	motorSpeed = getRingbufferAverage(&Stick);	//Der Durchschnitt des Ringbuffers wird in motorspeed geschrieben
-	char text[20] = "0q\t";		//Arry wird deklariert und mit dem Text aufgefüllt 
+	char text[20] = "0q\t";		//Arry wird deklariert und mit dem "0q\t" aufgefüllt 
 					//Diese Nachricht hat eine bestimmte Reihenfolge und beinhaltet Informationen
 					//über Lenkrichtung, Geschwindigkeit und Fahrtrichtung
 	char n[4];			//Platzhalter für Motorgeschwindigkeit
