@@ -182,26 +182,30 @@ int main(void)
     {
 		switch (state)			
 		{
-		case empty:
+		case empty:			
 			state = boot;
 			break;
-		case boot:
+		case boot:			//Der Controller wird "hochgefahren" und geht anschließend in den "send" state
 			setup();
 			state = send;
 			break;
-		case receive:
-			state = send
-			break;
-		case send:
-			state = display;
-			wdt_enable(WDTO_1S);	//Watchdog Timer wird auf 1 Sekunde gesetzt, wird länger als 1 Sekunde
-						//nicht mit der Watchdog Funktion interagiert, wird der Mikrocontroller resetet
-			sendData();
+		case receive:			//Platzhalter da in Zukunft auch Daten vom Bollerwagen empfangen werden sollen
+			state = send		//Nach dem Emfpangen wird in den "send" state gewechselt
+			wdt_enable(WDTO_1S);
+			//Empfangs funktion 
 			wdt_disable();
 			wdt_reset();
 			break;
-		case display:
-			state = receive;
+		case send:			//Daten werden an den Bollerwagen gesendet
+			state = display;	//der State wird auf Display gewechselt
+			wdt_enable(WDTO_1S);	//Watchdog Timer wird auf 1 Sekunde gesetzt, wird länger als 1 Sekunde
+						//nicht mit der Watchdog Funktion interagiert, wird der Mikrocontroller resetet
+			sendData();		//Datensende Funktion wird aufgerufen
+			wdt_disable();
+			wdt_reset();
+			break;
+		case display:			//das Display wird beschrieben
+			state = receive;	//der state wird auf "receive" geändert, und die 3 States laufen vortan im loop
 			wdt_enable(WDTO_1S);
 			draw();
 			wdt_disable();
@@ -209,7 +213,7 @@ int main(void)
 			
 			break;
 		}
-		sample();	//ADC sampling funktion	
+		sample();			//ADC sampling funktion	um neue Daten aus dem Magnetfeldsensor zu lesen
 		
 		
     }
