@@ -74,9 +74,9 @@ void sendData(){
 	addValue(&Stick,percentage(ADC_Read(ADC1D))); 	//Der Ringbuffer wird gefüllt mit einem neuen Wert
 	
 	motorSpeed = getRingbufferAverage(&Stick);	//Der Durchschnitt des Ringbuffers wird in motorspeed geschrieben
-	char text[20] = "0q\t";		//Arry wird deklariert und mit dem "0q\t" aufgefüllt 
-					//Diese Nachricht hat eine bestimmte Reihenfolge und beinhaltet Informationen
-					//über Lenkrichtung, Geschwindigkeit und Fahrtrichtung
+	char text[20] = "0\t";		//Arry wird deklariert und mit dem text "0\t" aufgefüllt 
+					//Diese Nachricht hat eine bestimmte Reihenfolge und beinhaltet am Ende Informationen
+					//über Fahrtrichtung, Geschwindigkeit und Lenkung
 	char n[4];			//Platzhalter für Motorgeschwindigkeit
 	
 	integerToChar(n,motorSpeed);	//Aus den Zahlenwerten werden Buchstaben gemacht (auch 0,1,2 ist ein Buchstabe)
