@@ -170,8 +170,8 @@ void sample()					//Es wird alle 20ms ein Wert vom Hallsensor gespeichert
 int main(void)
 {
 	wdt_enable(WDTO_8S);			//Watchdog wird eingeschaltet
-	wdt_reset();				//auf 0 gesetzt
 	wdt_disable();				//Ausgeschaltet
+	wdt_reset();				//auf 0 gesetzt
 	ADC_Init();				//Funktion wird aufgerufen
 	enum statemachine state = empty;   	//Anfangszustand der Statemachine
     while (1) 					//Die verschiedenen States werden abgearbeitet
