@@ -1,11 +1,3 @@
-/*
- * main.h
- *
- * Created: 31.05.2019 21:16:18
- *  Author: Kenan
- */ 
-
-
 #ifndef MAIN_H_
 #define MAIN_H_
 
