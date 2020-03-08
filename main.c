@@ -53,7 +53,7 @@ unsigned long millis ()
 {
 	unsigned long millis_return;	//Lokale Variable 
 
-	ATOMIC_BLOCK(ATOMIC_FORCEON) {		//Es wird sichergestellt, dass beim beim auslesen des wertes,
+	ATOMIC_BLOCK(ATOMIC_FORCEON) {		//Es wird sichergestellt, dass beim beim auslesen des Wertes,
 		millis_return = timer1_millis;	//kein Interrrupt stattfinden kann, damit alle Bits überschrieben werden können
 	}
 	
@@ -75,13 +75,13 @@ void sendData(){
 	
 	motorSpeed = getRingbufferAverage(&Stick);	//Der Durchschnitt des Ringbuffers wird in motorspeed geschrieben
 	char text[20] = "0\t";		//Arry wird deklariert und mit dem text "0\t" aufgefüllt 
-					//Diese Nachricht hat eine bestimmte Reihenfolge und beinhaltet am Ende Informationen
-					//über Fahrtrichtung, Geschwindigkeit und Lenkung
+					//Diese Nachricht hat eine bestimmte Reihenfolge und beinhaltet am Ende der Funktion
+					//Informationen über Fahrtrichtung, Geschwindigkeit und Lenkung
 	char n[4];			//Platzhalter für Motorgeschwindigkeit
 	
 	integerToChar(n,motorSpeed);	//Aus den Zahlenwerten werden Buchstaben gemacht (auch 0,1,2 ist ein Buchstabe)
 					//Nachricht bleibt vom Format her immer gleich
-	strcat(text,n);			//Die Motorwerte werden zur Nachricht addiert
+	strcat(text,n);			//Die Motorwerte werden an die Nachricht angereiht
 	strcat(text,"\t1\n");		//Lenkung wird nicht betätigt (Testzwecke)
 		
 	uart_puts(text);		//Text wird in den Buffer von Uart gesetzt
@@ -193,10 +193,10 @@ int main(void)
 			wdt_reset();
 			break;
 		case send:			//Daten werden an den Bollerwagen gesendet
-			state = display;	//der State wird auf Display gewechselt
+			state = display;	//der state wird auf Display gewechselt
 			wdt_enable(WDTO_1S);	//Watchdog Timer wird auf 1 Sekunde gesetzt, wird länger als 1 Sekunde
 						//nicht mit der Watchdog Funktion interagiert, wird der Mikrocontroller resetet
-			sendData();		//Datensende Funktion wird aufgerufen
+			sendData();		//Funktion zum Daten senden wird aufgerufen
 			wdt_disable();
 			wdt_reset();
 			break;
