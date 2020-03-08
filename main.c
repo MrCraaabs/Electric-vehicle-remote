@@ -203,13 +203,14 @@ int main(void)
 		case display:			//das Display wird beschrieben
 			state = receive;	//der state wird auf "receive" geändert, und die 3 States laufen vortan im loop
 			wdt_enable(WDTO_1S);
+			sample();		//ADC sampling funktion	um neue Daten aus dem Magnetfeldsensor zu lesen
 			draw();
 			wdt_disable();
 			wdt_reset();
 			
 			break;
 		}
-		sample();			//ADC sampling funktion	um neue Daten aus dem Magnetfeldsensor zu lesen
+
 		
 		
     }
